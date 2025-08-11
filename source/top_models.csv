@@ -1,0 +1,10 @@
+model,train_type,measurement,dataset,lower_ci,upper_ci,score
+convnext_large_in22k,imagenet21k,Arousal,Oasis,0.772016466,0.818985025,0.798333867
+convnext_large_in22k,imagenet21k,Valence,Oasis,0.818457837,0.830513645,0.824651492
+convnext_large_in22k,imagenet21k,Beauty,Oasis,0.860585784,0.873586639,0.867519361
+RegNet-32Gf-SEER,seer,Arousal,Oasis,0.747146219,0.789246115,0.770655419
+RegNet-32Gf-SEER,seer,Valence,Oasis,0.774786443,0.787736688,0.78139489
+RegNet-64Gf-SEER,seer,Beauty,Oasis,0.841255135,0.85403411,0.847885271
+inception-v4,random,Arousal,Oasis,0.216,0.245,0.231
+nasnetalarge,random,Beauty,Oasis,0.293,0.337,0.315
+nasnetalarge,random,Valence,Oasis,0.223,0.278,0.25

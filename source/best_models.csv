@@ -1,0 +1,7 @@
+﻿model,train_type,score_type,score,ci_lower,ci_upper
+placeholder_1,Category-Supervised Models,explained_variance,0.729,0.702,0.75
+placeholder_2,Self-Supervised Models,explained_variance,0.697,0.671,0.718
+placeholder_3,Untrained Models,explained_variance,0.21,0.182,0.246
+placeholder_1,Category-Supervised Models,pearson_r,0.811,0.798,0.822
+placeholder_2,Self-Supervised Models,pearson_r,0.793,0.78,0.804
+placeholder_3,Untrained Models,pearson_r,0.395,0.335,0.427
