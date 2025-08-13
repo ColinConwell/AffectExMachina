@@ -1,4 +1,4 @@
-from feature_analysis3 import *
+from .feature_analysis import *
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Cross-Decoding Dataset')

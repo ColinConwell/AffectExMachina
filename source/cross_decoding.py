@@ -1,4 +1,4 @@
-from feature_analysis3 import *
+from .feature_analysis import *
 
 def cross_ridge_regression(X, y, train_indices, test_indices, train_y='beauty', test_y='beauty', alpha_values=[1000]):
 
