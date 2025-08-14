@@ -1,9 +1,8 @@
 import numpy as np
-import pandas as pd
 from tqdm.auto import tqdm as tqdm
-import os, sys, time, pickle, argparse
+import os, pickle
 
-import torch as torch
+import torch, torchvision
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
@@ -219,7 +218,7 @@ def get_feature_map_pcs(feature_maps, n_components = None, return_pca_object = F
             output_filepath = output_filepaths[feature_map_name]
             if not os.path.exists(output_filepath):
                 pca_feature_maps[feature_map_name] = get_pca(feature_maps[feature_map_name])
-                np.save(output_filepath, srp_feature_maps[feature_map_name])
+                np.save(output_filepath, pca_feature_maps[feature_map_name])
             if os.path.exists(output_filepath):
                 pca_feature_maps[feature_map_name] = np.load(output_filepath, allow_pickle=True)
                 
@@ -235,7 +234,7 @@ def get_feature_map_pcs(feature_maps, n_components = None, return_pca_object = F
 def pca_extraction(model_string, model = None, inputs = None, feature_maps = None, 
                    n_components = None, aux_inputs = None, aux_feature_maps = None,
                    output_dir='temp_data/pca_arrays', delete_saved_outputs = True,
-                   delete_original_feature_maps = False, verbose = False):
+                   delete_original_feature_maps = False, verbose = False, **kwargs):
     
     check_reduction_inputs(feature_maps, inputs)
     
@@ -302,7 +301,7 @@ def pca_extraction(model_string, model = None, inputs = None, feature_maps = Non
                     'return_pca_object': True, 'save_outputs': False,
                     'delete_originals': delete_original_feature_maps}
         
-        if save_outputs:
+        if kwargs.pop('save_outputs', False):
             raise Warning('save_outputs incompatible with using auxiliary PCA. Ignoring (and not saving)...')
         
         aux_pcas = get_feature_map_pcs(**pca_args)

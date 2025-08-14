@@ -1,7 +1,7 @@
 from warnings import filterwarnings
 filterwarnings("ignore")
 
-import os, sys, argparse
+import os, argparse
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
@@ -9,10 +9,8 @@ from copy import copy
 
 from torch.utils.data import DataLoader
 
-sys.path.append('model_opts')
-from feature_extraction import *
-from feature_reduction import *
-from model_options import *
+# import model options
+from .model_opts import *
 
 from sklearn.linear_model import RidgeCV
 from scipy.stats import pearsonr
@@ -65,7 +63,7 @@ def get_stimulus_loader(image_paths, image_transforms, batch_size = 64):
     return DataLoader(dataset=StimulusSet(image_paths, image_transforms), batch_size=64)
     
 
-def get_feature_metrics(model_option, stimulus_features):
+def get_feature_metrics(model_option, features, image_df):
     model_name = model_option['model_name']
     train_type = model_option['train_type']
     

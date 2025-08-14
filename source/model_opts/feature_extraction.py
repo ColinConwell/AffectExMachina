@@ -295,7 +295,7 @@ def get_all_feature_maps(model, inputs, layers_to_retain=None, remove_duplicates
                                               layers_to_retain, remove_duplicates)
         
         if include_input_space:
-            input_map = {'Input': torch.empty(dataset_size, *input_size)}
+            input_map = {'Input': torch.empty(dataset_size, *batch_size)}
             feature_maps = {**input_map, **feature_maps}
         
         

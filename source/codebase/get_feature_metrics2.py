@@ -1,25 +1,17 @@
-import os, sys, argparse
+import os, argparse
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 from glob import glob
 from PIL import Image
 
-import torch, torchvision
-import torch.nn as nn
-import torchvision.models as models
-from torch.autograd import Variable
-import torchvision.transforms as transforms
+import torch
 from torch.utils.data import Dataset, DataLoader
 
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-sys.path.append('model_opts')
-from feature_extraction import *
-from model_options import *
-from image_ops import *
+from ..model_opts import *
 
 class StimulusSet(Dataset):
     def __init__(self, csv, root_dir, image_transforms=None):

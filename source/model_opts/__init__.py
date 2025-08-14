@@ -4,3 +4,4 @@ from .feature_extraction import *
 from .feature_reduction import *
 from .model_options import *
 from .mapping_methods import *
+from .model_opts_utils import *
