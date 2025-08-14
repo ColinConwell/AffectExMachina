@@ -1,13 +1,4 @@
-import os, sys, json
-import pandas as pd
-import pingouin as pg
-
-from copy import copy
-from glob import glob
-from tqdm.auto import tqdm as tqdm
-import matplotlib.pyplot as plt
-
-from scipy.stats import pearsonr
+import os, pandas as pd
 
 def load_response_data(imageset, response_dir = 'response', averages = True):
     response_data = pd.read_csv(os.path.join(response_dir, '{}_means_per_image.csv').format(imageset))
@@ -50,7 +41,7 @@ def process_metric_data(model_string, dataset, orient='wide'):
     if 'image' in model_data.columns:
         model_data = model_data.rename(columns={'image': 'image_name'})
     
-    data_wide = pd.merge(model_data, response_data[dataset], on = 'image_name')
+    data_wide = pd.merge(model_data, load_response_data(dataset), on = 'image_name')
     data_wide['model_layer_depth'] = (data_wide['model_layer_index'] / 
                                       data_wide['model_layer'].nunique())
     

@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-sys.path.append('../mouseland/model_opts')
+sys.path.append('model_opts')
 from feature_extraction import *
 from model_options import *
 from image_ops import *

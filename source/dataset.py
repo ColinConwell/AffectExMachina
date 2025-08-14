@@ -1,7 +1,4 @@
-import pandas as pd
-import os, sys
-
-from copy import copy
+import os, pandas as pd
 from glob import glob
 
 def load_response_data(imageset, response_dir = 'response', average = True):

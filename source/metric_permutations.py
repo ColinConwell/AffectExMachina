@@ -1,15 +1,15 @@
 from warnings import filterwarnings
 filterwarnings("ignore")
 
-import os, sys, json
+import os, sys
 import pandas as pd
 import numpy as np
-from tqdm.auto import tqdm as tqdm
+from tqdm.auto import tqdm
 
 from scipy.stats import pearsonr
 from glob import glob
 
-sys.path.append('../mouseland/model_opts')
+sys.path.append('model_opts')
 from model_options import *
 model_options = get_model_options()
 

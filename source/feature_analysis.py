@@ -4,19 +4,12 @@ filterwarnings("ignore")
 import os, sys, argparse
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
-from glob import glob
-from PIL import Image
 from copy import copy
 
-from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
 
-from PIL import ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-sys.path.append('../model_opts')
+sys.path.append('model_opts')
 from feature_extraction import *
 from feature_reduction import *
 from model_options import *

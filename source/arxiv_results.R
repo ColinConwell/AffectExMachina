@@ -78,7 +78,7 @@ fix_factor_levels <- function(x) {
 self_supervised_regex <- 'selfsupervised|seer'
 detectron_regex <- 'segmentation|detection|panoptics'
 
-model_typology <- read_csv('../model_opts/model_typology.csv') %>%
+model_typology <- read_csv('model_opts/model_typology.csv') %>%
   mutate(task_cluster = ifelse(model == 'denoising', '2D', task_cluster))
 model_display_names <- model_typology %>% distinct(model, model_display_name)
 

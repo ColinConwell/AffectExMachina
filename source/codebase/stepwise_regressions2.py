@@ -12,7 +12,7 @@ from sklearn.metrics import explained_variance_score as ev_score
 from sklearn.linear_model import LinearRegression, RidgeCV
 from scipy.stats import pearsonr
 
-sys.path.append('../mouseland/model_opts')
+sys.path.append('model_opts')
 from model_options import *
 
 def process_response_data(response_filepath):
