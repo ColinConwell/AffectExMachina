@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from scipy.stats import pearsonr
 from tqdm.auto import tqdm as tqdm
 
@@ -21,7 +21,7 @@ def split_half(x, n_splits=100, mode='spearman-brown', use_tqdm = True):
     
     Arguments
     
-    x           -   A NumPy array with shape (M,N), where M is the number of
+    x           -   A np array with shape (M,N), where M is the number of
                     observations and N is the number of participants or tests.
                     M will be split in half to compute the reliability, not N!
     
@@ -56,24 +56,24 @@ def split_half(x, n_splits=100, mode='spearman-brown', use_tqdm = True):
     n_half_2 = n_observations - n_half_1
     # Generate a split-half-able vector. Assign the first half 1 and the
     # second half 2.
-    halves = numpy.ones((n_observations, n_subjects), dtype=int)
+    halves = np.ones((n_observations, n_subjects), dtype=int)
     halves[n_half_1:, :] = 2
     
     # Run through all runs.
-    r_ = numpy.zeros(n_splits, dtype=float)
+    r_ = np.zeros(n_splits, dtype=float)
     iterator = tqdm(range(n_splits), leave = False) if use_tqdm else range(n_splits)
     for i in iterator:
 
         # Shuffle the split-half vector along the first axis.
-        numpy.random.shuffle(halves)
+        np.random.shuffle(halves)
 
         # Split the data into two groups.
-        x_1 = numpy.reshape(x[halves==1], (n_half_1, n_subjects))
-        x_2 = numpy.reshape(x[halves==2], (n_half_2, n_subjects))
+        x_1 = np.reshape(x[halves==1], (n_half_1, n_subjects))
+        x_2 = np.reshape(x[halves==2], (n_half_2, n_subjects))
         
         # Compute the averages for each group.
-        m_1 = numpy.nanmean(x_1, axis=0)
-        m_2 = numpy.nanmean(x_2, axis=0)
+        m_1 = np.nanmean(x_1, axis=0)
+        m_2 = np.nanmean(x_2, axis=0)
         
         # Compute the correlation between the two averages.
         pearson_r, p = pearsonr(m_1, m_2)
@@ -85,9 +85,9 @@ def split_half(x, n_splits=100, mode='spearman-brown', use_tqdm = True):
             r_[i] = 2.0 * pearson_r / (1.0 + pearson_r)
     
     # Compute the average R value.
-    r = numpy.nanmean(r_, axis=0)
+    r = np.nanmean(r_, axis=0)
     # Compute the standard error of the mean of R.
-    sem = numpy.nanstd(r_, axis=0) / numpy.sqrt(n_splits)
+    sem = np.nanstd(r_, axis=0) / np.sqrt(n_splits)
     ci_lower = np.quantile(r_, 0.025)
     ci_upper = np.quantile(r_, 0.975)
     
@@ -123,23 +123,23 @@ def test_retest(x, mode='harris'):
     # Fisher (for two measurements).
     if mode == 'fisher' and n_measurements == 2:
         # Compute the pooled mean.
-        m = numpy.sum(x[0,:] + x[1,:]) / (2 * n_subjects)
+        m = np.sum(x[0,:] + x[1,:]) / (2 * n_subjects)
         # Compute the pooled variance.
-        var = (numpy.sum((x[0,:] - m)**2) + numpy.sum((x[1,:] - m)**2)) \
+        var = (np.sum((x[0,:] - m)**2) + np.sum((x[1,:] - m)**2)) \
             / (2 * n_subjects)
         # Compute the intraclass correlation according to Fisher.
-        r = numpy.sum((x[0,:]-m)*(x[1,:]-m)) / (n_subjects * var)
+        r = np.sum((x[0,:]-m)*(x[1,:]-m)) / (n_subjects * var)
     
     # Harris for 2 measurements of over.
     elif mode == 'harris':
         # Compute the pooled mean.
-        m = numpy.sum(numpy.sum(x, axis=0)) / (n_measurements*n_subjects)
+        m = np.sum(np.sum(x, axis=0)) / (n_measurements*n_subjects)
         # Compute the pooled standard deviation.
-        var = numpy.sum(numpy.sum((x - m)**2, axis=0)) \
+        var = np.sum(np.sum((x - m)**2, axis=0)) \
             / (n_measurements * n_subjects)
         # Compute the intraclass correlation according to Harris.
         a = n_measurements / float(n_measurements-1)
-        b = numpy.sum((numpy.mean(x, axis=0) - m)**2) / n_subjects
+        b = np.sum((np.mean(x, axis=0) - m)**2) / n_subjects
         c = 1.0 / float(n_measurements-1)
         r = a * (b / var) - c
     
@@ -159,14 +159,14 @@ if __name__ == "__main__":
     n_measurements = 5
 
     # Construct fake data for split-half reliability.
-    x = numpy.zeros((n_trials, n_subjects), dtype=float)
+    x = np.zeros((n_trials, n_subjects), dtype=float)
     for i in range(n_subjects):
         # Choose a random mean for this participant.
-        m = numpy.random.rand() * (m_range[1]-m_range[0]) + m_range[0]
+        m = np.random.rand() * (m_range[1]-m_range[0]) + m_range[0]
         # Choose a random standard deviation for this participant.
-        sd = numpy.random.rand() * (sd_range[1]-sd_range[0]) + sd_range[0]
+        sd = np.random.rand() * (sd_range[1]-sd_range[0]) + sd_range[0]
         # Create random values.
-        x[:,i] = m + numpy.random.randn(n_trials)*sd
+        x[:,i] = m + np.random.randn(n_trials)*sd
     # Replace all values below the lowest value.
     x[x<min_value] = min_value
     
@@ -178,12 +178,12 @@ if __name__ == "__main__":
     x = numpy.zeros((n_measurements, n_subjects), dtype=float)
     for i in range(n_subjects):
         # Choose a random mean for this participant.
-        m = numpy.random.rand() * (m_range[1]-m_range[0]) + m_range[0]
+        m = np.random.rand() * (m_range[1]-m_range[0]) + m_range[0]
         # Choose a random standard deviation for this participant.
-        sd = numpy.random.rand() * (sd_range[1]-sd_range[0]) + sd_range[0]
+        sd = np.random.rand() * (sd_range[1]-sd_range[0]) + sd_range[0]
         # Create random values for each measurement.
         for j in range(n_measurements):
-            x[j,i] = numpy.mean(m + numpy.random.randn(n_trials)*sd)
+            x[j,i] = np.mean(m + np.random.randn(n_trials)*sd)
     
     # Compute the test-retest reliability.
     r = test_retest(x, mode='harris')

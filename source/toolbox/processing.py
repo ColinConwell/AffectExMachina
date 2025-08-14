@@ -1,15 +1,5 @@
-import os, pandas as pd
-
-def load_response_data(imageset, response_dir = 'response', averages = True):
-    response_data = pd.read_csv(os.path.join(response_dir, '{}_means_per_image.csv').format(imageset))
-    if imageset == 'oasis':
-        response_data = response_data.rename(columns={'category': 'image_type'})
-        response_data['image_name'] = response_data['theme'] + '.jpg'
-        response_data = response_data.drop(['item','theme'], axis = 1)
-    if imageset == 'vessel':
-        response_data = response_data.rename(columns={'rating': 'beauty'})
-    return response_data
-        
+import pandas as pd
+from ..dataset import *
 
 def max_transform(df, group_vars, measure_var = 'score', transform = max, deduplicate=True):
     if not isinstance(group_vars, list):

@@ -12,20 +12,6 @@ ci_boot <- function(x) {return(mean_cl_boot(x) %>% mutate(ci=ymax-y) %>% pull(ci
 custom_themes <- list()
 theme_set(theme_bw())
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
-if (!require(pacman)) {install.packages("pacman")}
-pacman::p_load('psych', 'mgsub', 'arrow', 'scales', 'weights', 'mgcv', 'skimr',
-               'ggeasy', 'ggpubr', 'ggfortify', 'ggstatsplot', 'cowplot', 
-               'stargazer', 'rstatix', 'tidymodels', 'tidytext', 'tidyverse')
-
-#https://rpubs.com/dgolicher/median_boot
-ci_norm <- function(x) {return(qnorm(0.975) * (sd(x) / sqrt(n())))}
-ci_boot <- function(x) {return(mean_cl_boot(x) %>% mutate(ci=ymax-y) %>% pull(ci))}
-
-custom_themes <- list()
-theme_set(theme_bw())
-
 ##### Specifications ------------------------------------------------------
 
 custom_themes[['bottom_legend']] <- theme(legend.position="bottom", legend.justification="center", 
@@ -33,13 +19,10 @@ custom_themes[['bottom_legend']] <- theme(legend.position="bottom", legend.justi
 
 ##### Metric Correlations ------------------------------------------------
 
-metric_corr_results <- read_csv('results/metric_correlations.csv') %>%
+metric_corr_results <- read_csv('../results/metric_correlations.csv') %>%
   mutate(corr_sq = corr**2, corr_abs = abs(corr)) %>%
   filter(duplicated(corr_abs) == FALSE) %>%
   filter(model != 'googlenet')
-
-devtools::install_github("teunbrand/ggh4x")
-library('ggh4x')
 
 metric_titles <- c(MeanActivity = 'mean_activity', Sparseness = 'sparseness')
 train_type_titles <- c(ImageNet = 'imagenet', Random = 'random')
@@ -103,7 +86,7 @@ metric_corr_results %>% group_by(model, train_type, dataset, image_type, metric,
 
 ##### Metric Permutations -----------------------------------------------
 
-metric_permutes <- read_csv('results/metric_permuting.csv') %>%
+metric_permutes <- read_csv('../results/metric_permuting.csv') %>%
   mutate(dataset = ifelse(image_type %in% oasis_levels, 'oasis', 'vessel')) %>%
   mutate(pass_permutation = as.factor(ifelse(corr_p_value < 0.05, 'Yes', 'No')))
 
@@ -146,7 +129,7 @@ metric_corr_permutes <- metric_corr_results %>%
                                        measurement, metric, pass_permutation))
 
 devtools::install_github("eliocamp/ggnewscale")
-library('ggnewscale')
+pacman::p_load('ggnewscale')
 
 choice_palette <- c(
   `blue`        = "#00BFC4",
@@ -205,7 +188,7 @@ metric_corr_permutes %>% filter(train_type != 'taskonomy') %>%
 
 ##### Metric Analysis -----------------------------------------------------
 
-metric_analysis <- read_csv('results/metric_analysis.csv')
+metric_analysis <- read_csv('../results/metric_analysis.csv')
 
 metric_analysis %>% mutate(score = ridge_gcv_score) %>% 
   filter(train_type == 'taskonomy') %>%
@@ -225,7 +208,7 @@ metric_analysis %>% mutate(score = ridge_gcv_score) %>%
 
 ##### Metric Stepwise -----------------------------------------
 
-metric_stepwise <- read_csv('results/stepwise_regressions2.csv')
+metric_stepwise <- read_csv('../results/stepwise_regressions2.csv')
 
 test_models <- c('alexnet','vgg19','resnet18', 'densenet121','resnet101','resnet152')
 metric_stepwise %>% filter(model %in% test_models) %>%

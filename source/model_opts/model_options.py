@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
-import os, sys, torch
+import os, torch
 import importlib
 
-filepath = os.path.dirname(os.path.abspath(__file__))
-model_typology = pd.read_csv(filepath + '/model_typology.csv')
+_this_filepath = os.path.dirname(os.path.abspath(__file__))
+model_typology = pd.read_csv(_this_filepath + '/model_typology.csv')
 model_typology['model_name'] = model_typology['model']
 
 def subset_typology(model_source):

@@ -1,6 +1,11 @@
-# to be used with aesthetics/arxiv_results.R
+# to be used with ../arxiv_results.R
 
 pacman::p_load('ggtext','viridisLite')
+
+# if reg_results not in env, run:
+if (!exists('reg_results')) {
+  source('../arxiv_results.R')
+}
 
 train_type_labels <- c('Category-Supervised Models' = 'imagenet', 
                        'Self-Supervised Models' = 'selfsupervised',
@@ -492,10 +497,3 @@ cap_layers %>% filter(image_type == 'Combo') %>%
   guides(color = guide_legend(nrow=3, byrow=TRUE)) +
   theme(text = element_text(size = 30)) + xlim(c(0,1)) +
   scale_y_continuous(limits = c(0,1.0), labels = function(x) {format(x * 100, digits = 3)})
-
-# reg_results %>% filter(model == 'RN50', train_type == 'clip') %>%
-#   filter(image_type == 'Combo', dataset == 'Oasis') %>% 
-#   write.csv('../beauty_lang/resnet50_clip_results.csv', row.names = FALSE)
-
-  
-  

@@ -1,5 +1,10 @@
-from feature_analysis3 import *
-from mapping_methods import *
+from .feature_analysis import *
+from ..model_opts.mapping_methods import *
+
+from pathlib import Path
+
+_THIS_DIRPATH = Path(__file__).parent
+_LAYER_LOOKUP = _THIS_DIRPATH / 'results' / 'superlative_layers.csv'
 
 def get_bootstrap_regression_results(model_option, stimulus_features, response_data, bootstrap_data,
                                      alpha_values = np.logspace(-1,5,25).tolist()):
@@ -67,12 +72,16 @@ if __name__ == "__main__":
                         help='destination for output files')
     parser.add_argument('--cuda_device', required=False, default='6',
                         help='target cuda device for gpu compute')
+    parser.add_argument('--layer_lookup_path', type=str, 
+                        required=False, default=_LAYER_LOOKUP,
+                        help='path to layer lookup table')
     
     args = parser.parse_args()
     model_string = args.model_string
     imageset = args.imageset
     output_type = args.output_type
     output_dir = args.output_dir
+    layer_lookup_path = args.layer_lookup_path
     cuda_device = args.cuda_device
     
     os.environ['CUDA_VISIBLE_DEVICES'] = cuda_device
@@ -97,7 +106,7 @@ if __name__ == "__main__":
         
         bootstrap_data = pd.read_csv('response/{}_bootstraps.csv'.format(imageset))
         
-        target_layers = pd.read_csv('superlative_layers.csv').set_index('model_string').to_dict(orient='index')
+        target_layers = pd.read_csv(layer_lookup_path).set_index('model_string').to_dict(orient='index')
         target_layer = target_layers[model_string]['model_layer']
         
         feature_maps = get_all_feature_maps(model_string, stimulus_loader, layers_to_retain = [target_layer])

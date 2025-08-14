@@ -8,7 +8,7 @@ from .model_options import *
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def get_model_metadata(model_option, convert_to_dataframe = True):
+def get_model_metadata(model_option, convert_to_dataframe=True, **kwargs):
     model_name = model_option['model_name']
     train_type = model_option['train_type']
     model = eval(model_option['call'])

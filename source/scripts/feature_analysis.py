@@ -10,7 +10,7 @@ from copy import copy
 from torch.utils.data import DataLoader
 
 # import model options
-from .model_opts import *
+from ..model_opts import *
 
 from sklearn.linear_model import RidgeCV
 from scipy.stats import pearsonr

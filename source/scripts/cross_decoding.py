@@ -1,6 +1,17 @@
 from .feature_analysis import *
 
-def cross_ridge_regression(X, y, train_indices, test_indices, train_y='beauty', test_y='beauty', alpha_values=[1000]):
+from pathlib import Path
+
+_LAYER_LOOKUP = Path(__file__).parent / 'results' / 'superlative_layers.csv'
+
+def cross_ridge_regression(X, y, train_indices, test_indices, 
+                           train_y='beauty', 
+                           test_y='beauty', 
+                           alpha_values=[1000],
+                           layer_lookup_path=None):
+    
+    if layer_lookup_path is None:
+        layer_lookup_path = _LAYER_LOOKUP
 
     X_train = X[train_indices]
     y_train = y[train_indices][train_y]
@@ -28,12 +39,16 @@ if __name__ == "__main__":
                         help='format of output_file (csv or parquet)')
     parser.add_argument('--cuda_device', required=False, default='7',
                         help='target cuda device for gpu compute')
+    parser.add_argument('--layer_lookup_path', type=str, 
+                        required=False, default=_LAYER_LOOKUP,
+                        help='path to layer lookup table')
     
     args = parser.parse_args()
     model_string = args.model_string
     cross_type = args.cross_type
     output_type = args.output_type
     cuda_device = args.cuda_device
+    layer_lookup_path = args.layer_lookup_path
     
     os.environ['CUDA_VISIBLE_DEVICES'] = cuda_device
     
@@ -74,7 +89,7 @@ if __name__ == "__main__":
         image_transforms = get_recommended_transforms(model_string)
         stimulus_loader = DataLoader(dataset=StimulusSet(image_data.image_path, image_transforms), batch_size=64)
         
-        target_layers = pd.read_csv('superlative_layers.csv').set_index('model_string').to_dict(orient='index')
+        target_layers = pd.read_csv(layer_lookup_path).set_index('model_string').to_dict(orient='index')
         target_layer = target_layers[model_string]['model_layer']
         
         feature_maps = get_all_feature_maps(model_string, stimulus_loader, layers_to_retain = [target_layer])

@@ -2,15 +2,16 @@ from warnings import filterwarnings
 filterwarnings("ignore")
 
 import os, sys
+import argparse
 import pandas as pd
 import numpy as np
+import pingouin as pg
 from tqdm.auto import tqdm
 
 from scipy.stats import pearsonr
 from glob import glob
 
-sys.path.append('model_opts')
-from model_options import *
+from ..model_opts import *
 model_options = get_model_options()
 
 import numba
@@ -28,12 +29,12 @@ def any_nans(a):
     if not a.dtype.kind=='f': return False
     return _any_nans(a.flat)
 
-from processing import *
+from source.toolbox.processing import *
 
 response_data = {'vessel': load_response_data('vessel'), 'oasis': load_response_data('oasis')}
 
-def process_metric_data(model_string, dataset, orient='wide'):
-    model_data = (pd.read_csv('metrics/{}/{}.csv'.format(dataset,model_string)))
+def process_metric_data(model_string, dataset, orient='wide', results_dir='metrics'):
+    model_data = (pd.read_csv('{}/{}/{}.csv'.format(results_dir,dataset,model_string)))
     model_data['dataset'] = dataset
     if 'image' in model_data.columns:
         model_data = model_data.rename(columns={'image': 'image_name'})
@@ -63,14 +64,22 @@ def process_metric_data(model_string, dataset, orient='wide'):
         return(data_long)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Permute metric data')
+    parser.add_argument('--results_dir', type=str, required=False, default='metrics',
+                        help='path to results directory')
+    parser.add_argument('--output_file', type=str, required=False, default='results/metric_permuting.csv',
+                        help='path to output file')
     
-    model_csvs = glob('metrics/oasis/*.csv')
+    args = parser.parse_args()
+    results_dir = args.results_dir
+    output_file = args.output_file
+    
+    model_csvs = glob('{}/**/*.csv'.format(results_dir), recursive=True) 
     target_models = [csv.split('/')[-1].split('.')[0] for csv in model_csvs]
     target_models = [model for model in target_models if 'googlenet' not in model]
 
     #target_models = ['alexnet_imagenet', 'alexnet_random']
 
-    output_file = 'results/metric_permuting.csv'
     if os.path.exists(output_file):
         perm_results = pd.read_csv(output_file)
 
@@ -129,7 +138,7 @@ if __name__ == "__main__":
                 incoming_results.to_csv(temp_file, index = None)
         
         perm_results = pd.concat(results_dflist)
-        perm_reseults['corr_p_adj'] = pg.multicomp(perm_results['corr_p_value'].to_numpy(), 
+        perm_results['corr_p_adj'] = pg.multicomp(perm_results['corr_p_value'].to_numpy(), 
                                                    alpha = 0.05, method = 'fdr')
         
         perm_results.to_csv(output_file, index = None)

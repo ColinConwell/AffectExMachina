@@ -49,7 +49,7 @@ def load_combined_response_data(response_dir = 'response', average = True):
                           load_response_data('oasis', response_dir, average).assign(imageset = 'oasis')], axis = 0)
     
 def load_combined_image_data(image_dir = 'images'):
-    return pd.concat([load_imageset('oasis', image_dir), load_imageset('vessel', image_dir)], axis = 0)
+    return pd.concat([load_image_data('oasis', image_dir), load_image_data('vessel', image_dir)], axis = 0)
     
 def max_transform(df, group_vars, measure_var = 'score', transform = max, deduplicate=True):
     if not isinstance(group_vars, list):
