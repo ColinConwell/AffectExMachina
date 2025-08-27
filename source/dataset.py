@@ -1,7 +1,18 @@
 import os, pandas as pd
 from glob import glob
 
-def load_response_data(imageset, response_dir = 'response', average = True):
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_IMAGE_DIR = os.path.join(THIS_DIR, 'images')
+DEFAULT_RESPONSE_DIR = os.path.join(THIS_DIR, 'response')
+
+__all__ = ['load_response_data', 
+           'load_image_data', 
+           'load_combined_response_data', 
+           'load_combined_image_data', 
+           'max_transform', 
+           'min_transform']
+
+def load_response_data(imageset, response_dir=DEFAULT_RESPONSE_DIR, average=True):
     if average == True:
         response_data = pd.read_csv(os.path.join(response_dir, '{}_means_per_image.csv').format(imageset))
         if imageset == 'oasis':
@@ -22,14 +33,14 @@ def load_response_data(imageset, response_dir = 'response', average = True):
             response_data.image_name = response_data.image_name.str.replace(' ', '')
             response_data = response_data.drop(['item','theme'], axis = 1)
         if imageset == 'vessel':
-            response_data = (pd.read_csv('response/vessel_subject_data.csv')
+            response_data = (pd.read_csv(os.path.join(response_dir, 'vessel_subject_data.csv'))
                  .groupby(['Subj','ImageType','Image'])
                 .agg({'Rating': 'mean'}).reset_index())
             response_data.columns = ['subject','image_type','image_name','beauty']
             
     return response_data
 
-def load_image_data(imageset, image_dir = 'images'):
+def load_image_data(imageset, image_dir=DEFAULT_IMAGE_DIR):
     root = '{}/{}/'.format(image_dir, imageset)
     assets = glob(root + '*.jpg')
     asset_dictlist = []
@@ -44,31 +55,31 @@ def load_image_data(imageset, image_dir = 'images'):
     
     return image_data
     
-def load_combined_response_data(response_dir = 'response', average = True):
+def load_combined_response_data(response_dir=DEFAULT_RESPONSE_DIR, average=True):
         return pd.concat([load_response_data('vessel', response_dir, average).assign(imageset = 'vessel'),
                           load_response_data('oasis', response_dir, average).assign(imageset = 'oasis')], axis = 0)
     
-def load_combined_image_data(image_dir = 'images'):
+def load_combined_image_data(image_dir=DEFAULT_IMAGE_DIR):
     return pd.concat([load_image_data('oasis', image_dir), load_image_data('vessel', image_dir)], axis = 0)
     
-def max_transform(df, group_vars, measure_var = 'score', transform = max, deduplicate=True):
+def max_transform(df, group_vars, measure_var='score', transform_func=max, deduplicate=True):
     if not isinstance(group_vars, list):
         group_vars = [group_vars]
     
     max_df = (df[df.groupby(group_vars)[measure_var]
-                 .transform(max) == df[measure_var]]).reset_index(drop=True)
+                 .transform(transform_func) == df[measure_var]]).reset_index(drop=True)
                  
     if deduplicate:
         max_df = max_df[~max_df.duplicated(group_vars + [measure_var])]
         
     return max_df
 
-def min_transform(df, group_vars, measure_var = 'score', transform = max, deduplicate=True):
+def min_transform(df, group_vars, measure_var='score', transform_func=min, deduplicate=True):
     if not isinstance(group_vars, list):
         group_vars = [group_vars]
     
     min_df = (df[df.groupby(group_vars)[measure_var]
-                 .transform(min) == df[measure_var]]).reset_index(drop=True)
+                 .transform(transform_func) == df[measure_var]]).reset_index(drop=True)
                  
     if deduplicate:
         min_df = min_df[~min_df.duplicated(group_vars + [measure_var])]
