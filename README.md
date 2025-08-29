@@ -2,7 +2,7 @@
 
 ![Figure 1 from 'Perceptual Primacy of Feeling'](./banner.png)
 
-Experiments in the use of deep neural network models to predict human affect, including source code and data for the [paper](https://www.pnas.org/doi/abs/10.1073/pnas.2306025121): 
+Experiments in the use of deep neural network models to predict human affect and aesthetics, including source code and data for the [paper](https://www.pnas.org/doi/abs/10.1073/pnas.2306025121): 
 
 > *The perceptual primacy of feeling: Affectless visual machines explain a majority of variance in human visually evoked affect* (PNAS, 2025)
 
