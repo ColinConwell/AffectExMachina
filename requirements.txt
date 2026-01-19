@@ -1,0 +1,29 @@
+# Core
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+seaborn
+Pillow
+tqdm
+
+# PyTorch ecosystem
+torch
+torchvision
+timm
+
+# Statistics and utilities
+numba
+pingouin
+ftfy
+regex
+ipython
+
+# Visualization and data wrangling
+plotnine
+siuba
+
+# VCS/external sources
+visualpriors @ git+https://github.com/alexsax/visualpriors.git
+clip @ git+https://github.com/openai/CLIP.git
