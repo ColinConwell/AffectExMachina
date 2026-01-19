@@ -1,0 +1,41 @@
+[project]
+name = "affectexmachina"
+description = "Experiments in the use of deep neural network models to predict human affect and aesthetics."
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy",
+  "pandas",
+  "scipy",
+  "scikit-learn",
+  "tqdm",
+  "Pillow",
+  "matplotlib",
+  "seaborn",
+]
+
+[project.optional-dependencies]
+pytorch = [
+  "torch",
+  "torchvision",
+  "timm",
+]
+stats = [
+  "numba",
+  "pingouin",
+  "ftfy",
+  "regex",
+  "ipython",
+]
+viz = [
+  "plotnine",
+  "siuba",
+]
+external = [
+  "visualpriors @ git+https://github.com/alexsax/visualpriors.git",
+  "clip @ git+https://github.com/openai/CLIP.git",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
