@@ -23,11 +23,11 @@ def load_response_data(imageset, response_dir=DEFAULT_RESPONSE_DIR, average=True
             response_data = response_data.rename(columns={'rating': 'beauty'})
     if average == False:
         if imageset == 'oasis':
-            aenne_data_path = '{}/aenne_subject_data.csv'.format(response_dir)
+            brielmann_data_path = '{}/brielmann_subject_data.csv'.format(response_dir)
             oasis_data_path = '{}/oasis_subject_data.csv'.format(response_dir)
-            aenne_subject_data = pd.read_csv(aenne_data_path).drop(['arousal','valence'], axis = 1)
+            brielmann_subject_data = pd.read_csv(brielmann_data_path).drop(['arousal','valence'], axis = 1)
             oasis_subject_data = pd.read_csv(oasis_data_path)
-            subject_data_combo = pd.concat([oasis_subject_data, aenne_subject_data], axis = 0)
+            subject_data_combo = pd.concat([oasis_subject_data, brielmann_subject_data], axis = 0)
             response_data = subject_data_combo.rename(columns={'category': 'image_type'})
             response_data['image_name'] = response_data['theme'] + '.jpg'
             response_data.image_name = response_data.image_name.str.replace(' ', '')
