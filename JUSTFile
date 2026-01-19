@@ -1,0 +1,137 @@
+# AffectExMachina Justfile Commands
+# Run `just` to see available options
+
+# Default recipe: show available commands
+default:
+    @just --list
+
+# =============================================================================
+# Setup
+# =============================================================================
+
+# Run interactive setup wizard
+setup:
+    python scripts/run_setup.py
+
+# Create virtual environment with uv
+venv-uv:
+    uv venv .venv
+    @echo "Activate with: source .venv/bin/activate"
+
+# Create virtual environment with venv
+venv:
+    python -m venv .venv
+    @echo "Activate with: source .venv/bin/activate"
+
+# =============================================================================
+# Installation
+# =============================================================================
+
+# Install all dependencies with uv (recommended)
+install-uv:
+    uv pip install -e ".[pytorch,stats,viz]"
+
+# Install all dependencies with pip
+install-pip:
+    pip install -e ".[pytorch,stats,viz]"
+
+# Install base dependencies only with uv
+install-base-uv:
+    uv pip install -e .
+
+# Install base dependencies only with pip
+install-base-pip:
+    pip install -e .
+
+# Install external dependencies (visualpriors, CLIP)
+install-external:
+    pip install -e ".[external]"
+
+# Install development dependencies
+install-dev:
+    pip install nbconvert pytest black ruff
+
+# =============================================================================
+# Reproduction
+# =============================================================================
+
+# Run all analyses (notebooks and scripts)
+reproduce-all:
+    python scripts/reproduce.py --all
+
+# Run all notebooks only
+reproduce-notebooks:
+    python scripts/reproduce.py --notebooks
+
+# Run all scripts only
+reproduce-scripts:
+    python scripts/reproduce.py --scripts
+
+# Run a specific target (use `just list-targets` to see options)
+reproduce target:
+    python scripts/reproduce.py {{target}}
+
+# List available reproduction targets
+list-targets:
+    python scripts/reproduce.py --list
+
+# =============================================================================
+# Development
+# =============================================================================
+
+# Run linting with ruff
+lint:
+    ruff check source/
+
+# Format code with black
+format:
+    black source/ scripts/
+
+# Run tests
+test:
+    pytest source/ -v
+
+# =============================================================================
+# Notebooks
+# =============================================================================
+
+# Start Jupyter Lab
+lab:
+    jupyter lab
+
+# Start Jupyter Notebook
+notebook:
+    jupyter notebook
+
+# Convert notebook to script
+nb-to-script path:
+    jupyter nbconvert --to script {{path}}
+
+# =============================================================================
+# Utilities
+# =============================================================================
+
+# Clean generated files
+clean:
+    find . -type f -name "*.pyc" -delete
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find . -type d -name ".ipynb_checkpoints" -exec rm -rf {} + 2>/dev/null || true
+
+# Show project structure
+tree:
+    @echo "Project Structure:"
+    @echo "=================="
+    @ls -la
+    @echo ""
+    @echo "Source Directory:"
+    @ls -la source/
+
+# Check Python version
+check-python:
+    @python --version
+    @python -c "import sys; print(f'Python {sys.version_info.major}.{sys.version_info.minor} >= 3.9: {sys.version_info >= (3, 9)}')"
+
+# Verify installation
+verify:
+    python -c "import numpy, pandas, scipy, sklearn, tqdm, PIL, matplotlib, seaborn; print('Core packages OK')"
+    python -c "import torch, torchvision, timm; print('PyTorch packages OK')" || echo "PyTorch packages not installed"
