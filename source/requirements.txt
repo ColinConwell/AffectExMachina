@@ -24,6 +24,14 @@ ipython
 plotnine
 siuba
 
+# Notebooks and validation
+jupyter
+jupyterlab
+nbconvert
+nbval
+papermill
+ipykernel
+
 # VCS/external sources
 visualpriors @ git+https://github.com/alexsax/visualpriors.git
 clip @ git+https://github.com/openai/CLIP.git

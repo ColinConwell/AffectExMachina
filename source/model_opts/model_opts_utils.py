@@ -1,6 +1,12 @@
 ### Auxiliary Functions: Feature Extraction ---------------------------------------------------------
 
-from .feature_extraction import *
+import matplotlib.pyplot as plt
+
+try: # import relatively
+    from .feature_extraction import *
+except ImportError:
+    # import directly
+    from feature_extraction import *
 
 def chunk_list(lst, n):
     for i in range(0, len(lst), n):

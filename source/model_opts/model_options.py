@@ -529,15 +529,18 @@ def get_transform_types():
 def get_recommended_transforms(model_query, input_type = 'PIL'):
     cached_model_types = ['imagenet','taskonomy','vissl']
     model_types = model_typology['train_type'].unique()
+    model_type = None
+    model_name = None
+    model_source = None
     if model_query in get_model_options():
         model_option = get_model_options()[model_query]
         model_type = model_option['train_type']
         model_name = model_option['model_name']
         model_source = model_option['model_source']
-    if model_query in model_types:
+    elif model_query in model_types:
         model_type = model_query
     
-    if model_type in cached_model_types:
+    if model_type is not None and model_type in cached_model_types:
         if model_type == 'imagenet':
             return get_torchvision_transforms('imagenet', input_type)
         if model_type == 'vissl':
@@ -545,7 +548,7 @@ def get_recommended_transforms(model_query, input_type = 'PIL'):
         if model_type == 'taskonomy':
             return get_taskonomy_transforms(input_type)
             
-    if model_type not in cached_model_types:
+    if model_type is not None and model_type not in cached_model_types:
         if model_source == 'torchvision':
             return transform_options[model_source](model_type, input_type)
         if model_source in ['timm', 'clip', 'detectron']:

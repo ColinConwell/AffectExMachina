@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 # =============================================================================
-# ALIASES: Mapping of friendly names to file paths
+# ALIASES: Mapping of analysis names / targets to file paths
 # =============================================================================
 
 NOTEBOOKS = {
@@ -34,30 +34,18 @@ NOTEBOOKS = {
     "feature_stats": "source/notebooks/feature_stats.ipynb",
     "subject_regressions": "source/notebooks/subject_regressions.ipynb",
     "bash_scripting": "source/notebooks/bash_scripting.ipynb",
-    # Historical notebooks in source/history/
-    "effective_dims": "source/history/effective_dims.ipynb",
-    "feature_metrics": "source/history/feature_metrics.ipynb",
-    "processing1": "source/history/processing1.ipynb",
-    "processing2": "source/history/processing2.ipynb",
 }
 
+# Scripts use relative imports and run as modules from project root.
+# They typically require command-line arguments (e.g., --model_string).
 SCRIPTS = {
-    # Analysis scripts in source/scripts/
-    "boot_regression": "source/scripts/boot_regression.py",
-    "cross_decoding": "source/scripts/cross_decoding.py",
-    "dataset_bootstrap": "source/scripts/dataset_bootstrap.py",
-    "feature_analysis": "source/scripts/feature_analysis.py",
-    "metric_permutations": "source/scripts/metric_permutations.py",
-    "script_subject_regressions": "source/scripts/subject_regressions.py",
-    # Historical scripts in source/history/
-    "feature_regression": "source/history/feature_regression.py",
-    "get_feature_maps": "source/history/get_feature_maps.py",
-    "get_feature_metrics1": "source/history/get_feature_metrics1.py",
-    "get_feature_metrics2": "source/history/get_feature_metrics2.py",
-    "get_sparsity_maps": "source/history/get_sparsity_maps.py",
-    "stepwise_regressions1": "source/history/stepwise_regressions1.py",
-    "stepwise_regressions2": "source/history/stepwise_regressions2.py",
-    "stepwise_regressions3": "source/history/stepwise_regressions3.py",
+    # Analysis scripts in source/scripts/ (run as modules from project root)
+    "regression_bootstrap": "source.scripts.boot_regression",
+    "cross_decoding": "source.scripts.cross_decoding",
+    "dataset_bootstrap": "source.scripts.dataset_bootstrap",
+    "feature_analysis": "source.scripts.feature_analysis",
+    "metric_permutations": "source.scripts.metric_permutations",
+    "script_subject_regressions": "source.scripts.subject_regressions",
 }
 
 # Combined aliases
@@ -128,18 +116,27 @@ def format_duration(seconds: float) -> str:
 # Execution functions
 # =============================================================================
 
+def get_source_dir() -> Path:
+    """Get the source directory."""
+    return get_project_root() / "source"
+
 def execute_notebook(
     notebook_path: Path,
     output_dir: Optional[Path] = None,
-    timeout: int = 600
+    timeout: int = 600,
+    kernel_name: Optional[str] = None
 ) -> ExecutionResult:
     """
-    Execute a Jupyter notebook using nbconvert.
+    Execute a Jupyter notebook using papermill.
+    
+    Papermill properly sets the kernel's working directory, allowing notebooks
+    to use relative paths for data files.
     
     Args:
         notebook_path: Path to the notebook file
         output_dir: Directory to save executed notebook (optional)
         timeout: Execution timeout in seconds
+        kernel_name: Kernel name to use (defaults to 'python3')
     
     Returns:
         ExecutionResult with success status and captured output
@@ -147,35 +144,76 @@ def execute_notebook(
     target = notebook_path.stem
     start_time = time.time()
     
-    # Build nbconvert command
-    cmd = [
-        sys.executable, "-m", "nbconvert",
-        "--to", "notebook",
-        "--execute",
-        "--inplace" if output_dir is None else "",
-        f"--ExecutePreprocessor.timeout={timeout}",
-        str(notebook_path)
-    ]
+    source_dir = get_source_dir()
     
-    # Remove empty strings from command
-    cmd = [c for c in cmd if c]
+    # Convert notebook path to absolute
+    notebook_path = notebook_path.resolve()
+    notebook_dir = notebook_path.parent
     
-    # Add output path if specified
+    # Determine output path
+    # By default, write to a temp file to avoid modifying the original notebook
+    # (papermill adds error markers and execution metadata to notebooks)
+    import tempfile
+    temp_output = None
     if output_dir is not None:
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / notebook_path.name
-        cmd.extend(["--output", str(output_path)])
+    else:
+        # Use temp file to avoid modifying original notebook
+        temp_output = tempfile.NamedTemporaryFile(
+            suffix='.ipynb', delete=False, dir=notebook_dir
+        )
+        output_path = Path(temp_output.name)
+        temp_output.close()
+    
+    # Build papermill command
+    kernel = kernel_name or "python3"
+    cmd = [
+        sys.executable, "-m", "papermill",
+        str(notebook_path),
+        str(output_path),
+        "--kernel", kernel,
+        "--cwd", str(source_dir),  # Set kernel working directory
+    ]
+    
+    # Set up environment:
+    # - notebook_dir in PYTHONPATH for local __init__.py imports
+    # - source_dir in PYTHONPATH for package imports
+    env = os.environ.copy()
+    pythonpath = env.get("PYTHONPATH", "")
+    paths = [str(notebook_dir), str(source_dir)]
+    if pythonpath:
+        paths.append(pythonpath)
+    env["PYTHONPATH"] = ":".join(paths)
     
     try:
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=timeout + 30  # Add buffer for nbconvert overhead
+            timeout=timeout + 30,
+            cwd=str(source_dir),
+            env=env
         )
         
         duration = time.time() - start_time
         success = result.returncode == 0
+        
+        # Check for execution errors in the output
+        error_indicators = ["PapermillExecutionError", "CellExecutionError", "Exception"]
+        if success:
+            for indicator in error_indicators:
+                if indicator in result.stderr or indicator in result.stdout:
+                    success = False
+                    break
+        
+        error_msg = None
+        if not success:
+            # Extract relevant error message
+            error_msg = result.stderr if result.stderr else result.stdout
+            # Truncate if too long
+            if len(error_msg) > 1000:
+                error_msg = error_msg[:500] + "\n...\n" + error_msg[-500:]
         
         return ExecutionResult(
             target=target,
@@ -184,7 +222,7 @@ def execute_notebook(
             duration=duration,
             stdout=result.stdout,
             stderr=result.stderr,
-            error_message=result.stderr if not success else None
+            error_message=error_msg
         )
         
     except subprocess.TimeoutExpired:
@@ -209,6 +247,101 @@ def execute_notebook(
             stderr="",
             error_message=str(e)
         )
+    finally:
+        # Clean up temp output file if used
+        if temp_output is not None and output_path.exists():
+            try:
+                output_path.unlink()
+            except OSError:
+                pass
+
+def execute_module(
+    module_name: str,
+    args: Optional[list] = None,
+    timeout: int = 600
+) -> ExecutionResult:
+    """
+    Execute a Python module using python -m.
+    
+    Modules are run from project root with source/ in PYTHONPATH.
+    
+    Args:
+        module_name: Module name (e.g., 'source.scripts.boot_regression')
+        args: Additional command-line arguments
+        timeout: Execution timeout in seconds
+    
+    Returns:
+        ExecutionResult with success status and captured output
+    """
+    target = module_name.split(".")[-1]
+    start_time = time.time()
+    
+    project_root = get_project_root()
+    source_dir = get_source_dir()
+    
+    cmd = [sys.executable, "-m", module_name]
+    if args:
+        cmd.extend(args)
+    
+    # Set up environment with source/ in PYTHONPATH for absolute imports
+    env = os.environ.copy()
+    pythonpath = env.get("PYTHONPATH", "")
+    paths = [str(source_dir)]
+    if pythonpath:
+        paths.append(pythonpath)
+    env["PYTHONPATH"] = ":".join(paths)
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(project_root),  # Run from project root
+            env=env
+        )
+        
+        duration = time.time() - start_time
+        success = result.returncode == 0
+        
+        error_msg = None
+        if not success:
+            error_msg = result.stderr if result.stderr else result.stdout
+            if len(error_msg) > 1000:
+                error_msg = error_msg[:500] + "\n...\n" + error_msg[-500:]
+        
+        return ExecutionResult(
+            target=target,
+            path=module_name,
+            success=success,
+            duration=duration,
+            stdout=result.stdout,
+            stderr=result.stderr,
+            error_message=error_msg
+        )
+        
+    except subprocess.TimeoutExpired:
+        duration = time.time() - start_time
+        return ExecutionResult(
+            target=target,
+            path=module_name,
+            success=False,
+            duration=duration,
+            stdout="",
+            stderr="",
+            error_message=f"Execution timed out after {timeout}s"
+        )
+    except Exception as e:
+        duration = time.time() - start_time
+        return ExecutionResult(
+            target=target,
+            path=module_name,
+            success=False,
+            duration=duration,
+            stdout="",
+            stderr="",
+            error_message=str(e)
+        )
 
 def execute_script(
     script_path: Path,
@@ -216,7 +349,7 @@ def execute_script(
     timeout: int = 600
 ) -> ExecutionResult:
     """
-    Execute a Python script.
+    Execute a Python script directly.
     
     Args:
         script_path: Path to the Python script
@@ -229,9 +362,24 @@ def execute_script(
     target = script_path.stem
     start_time = time.time()
     
+    # Convert to absolute path
+    script_path = script_path.resolve()
+    
+    # Run from script's parent directory
+    script_dir = script_path.parent
+    source_dir = get_source_dir()
+    
     cmd = [sys.executable, str(script_path)]
     if args:
         cmd.extend(args)
+    
+    # Set up environment with source/ in PYTHONPATH
+    env = os.environ.copy()
+    pythonpath = env.get("PYTHONPATH", "")
+    paths = [str(script_dir), str(source_dir)]
+    if pythonpath:
+        paths.append(pythonpath)
+    env["PYTHONPATH"] = ":".join(paths)
     
     try:
         result = subprocess.run(
@@ -239,7 +387,8 @@ def execute_script(
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=script_path.parent
+            cwd=str(script_dir),
+            env=env
         )
         
         duration = time.time() - start_time
@@ -283,17 +432,19 @@ def run_targets(
     project_root: Path,
     output_dir: Optional[Path] = None,
     timeout: int = 600,
-    verbose: bool = False
+    verbose: bool = False,
+    extra_args: Optional[list] = None
 ) -> list:
     """
     Run multiple targets with a progress bar.
     
     Args:
-        targets: List of (alias, path) tuples
+        targets: List of (alias, path_or_module, is_module) tuples
         project_root: Project root directory
         output_dir: Output directory for notebooks
         timeout: Execution timeout per target
         verbose: Whether to print detailed output
+        extra_args: Additional arguments to pass to scripts/notebooks
     
     Returns:
         List of ExecutionResult objects
@@ -310,20 +461,13 @@ def run_targets(
     
     iterator = tqdm(targets, desc="Running analyses", unit="target") if use_tqdm else targets
     
-    for alias, rel_path in iterator:
-        path = project_root / rel_path
-        
-        if not path.exists():
-            results.append(ExecutionResult(
-                target=alias,
-                path=str(path),
-                success=False,
-                duration=0,
-                stdout="",
-                stderr="",
-                error_message=f"File not found: {path}"
-            ))
-            continue
+    for item in iterator:
+        # Unpack target info
+        if len(item) == 3:
+            alias, path_or_module, is_module = item
+        else:
+            alias, path_or_module = item
+            is_module = False
         
         # Update progress bar description
         if use_tqdm:
@@ -331,22 +475,40 @@ def run_targets(
         else:
             print_info(f"Running {alias}...")
         
-        # Execute based on file type
-        if path.suffix == ".ipynb":
-            result = execute_notebook(path, output_dir, timeout)
-        elif path.suffix == ".py":
-            result = execute_script(path, timeout=timeout)
+        # Execute based on type
+        if is_module:
+            # Run as Python module
+            result = execute_module(path_or_module, args=extra_args, timeout=timeout)
         else:
-            results.append(ExecutionResult(
-                target=alias,
-                path=str(path),
-                success=False,
-                duration=0,
-                stdout="",
-                stderr="",
-                error_message=f"Unknown file type: {path.suffix}"
-            ))
-            continue
+            path = project_root / path_or_module
+            
+            if not path.exists():
+                results.append(ExecutionResult(
+                    target=alias,
+                    path=str(path),
+                    success=False,
+                    duration=0,
+                    stdout="",
+                    stderr="",
+                    error_message=f"File not found: {path}"
+                ))
+                continue
+            
+            if path.suffix == ".ipynb":
+                result = execute_notebook(path, output_dir, timeout)
+            elif path.suffix == ".py":
+                result = execute_script(path, args=extra_args, timeout=timeout)
+            else:
+                results.append(ExecutionResult(
+                    target=alias,
+                    path=str(path),
+                    success=False,
+                    duration=0,
+                    stdout="",
+                    stderr="",
+                    error_message=f"Unknown file type: {path.suffix}"
+                ))
+                continue
         
         results.append(result)
         
@@ -391,11 +553,13 @@ def list_targets() -> None:
     for alias, path in sorted(NOTEBOOKS.items()):
         print(f"  {Colors.CYAN}{alias:30}{Colors.ENDC} -> {path}")
     
-    print(f"\n{Colors.BOLD}Scripts:{Colors.ENDC}")
-    for alias, path in sorted(SCRIPTS.items()):
-        print(f"  {Colors.CYAN}{alias:30}{Colors.ENDC} -> {path}")
+    if SCRIPTS:
+        print(f"\n{Colors.BOLD}Scripts (run as modules, may require arguments):{Colors.ENDC}")
+        for alias, module in sorted(SCRIPTS.items()):
+            print(f"  {Colors.CYAN}{alias:30}{Colors.ENDC} -> python -m {module}")
+        print(f"\n{Colors.DIM}  Pass arguments after '--': reproduce.py <script> -- --arg1 value1{Colors.ENDC}")
     
-    print(f"\n{Colors.DIM}Use --all to run everything, or specify targets by name.{Colors.ENDC}")
+    print(f"\n{Colors.DIM}Use --notebooks to run all notebooks, or specify targets by name.{Colors.ENDC}")
 
 # =============================================================================
 # Main
@@ -407,11 +571,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python reproduce.py --list              # List available targets
-    python reproduce.py --all               # Run all analyses
-    python reproduce.py load_datasets       # Run specific target
-    python reproduce.py --notebooks         # Run all notebooks
-    python reproduce.py --scripts           # Run all scripts
+    python reproduce.py --list                        # List available targets
+    python reproduce.py load_datasets                 # Run specific notebook
+    python reproduce.py --notebooks                   # Run all notebooks
+    python reproduce.py regression_bootstrap -- --help  # Run script with args
+    python reproduce.py feature_analysis -- --model_string resnet50 --imageset oasis
         """
     )
     
@@ -423,7 +587,7 @@ Examples:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run all notebooks and scripts"
+        help="Run all notebooks (scripts require arguments)"
     )
     parser.add_argument(
         "--notebooks",
@@ -433,7 +597,7 @@ Examples:
     parser.add_argument(
         "--scripts",
         action="store_true",
-        help="Run all scripts only"
+        help="Run all scripts (will likely fail without arguments)"
     )
     parser.add_argument(
         "--list",
@@ -458,7 +622,15 @@ Examples:
         help="Print detailed output"
     )
     
-    args = parser.parse_args()
+    # Handle -- separator manually for passing args to scripts
+    argv = sys.argv[1:]
+    extra_args = []
+    if "--" in argv:
+        sep_idx = argv.index("--")
+        extra_args = argv[sep_idx + 1:]
+        argv = argv[:sep_idx]
+    
+    args = parser.parse_args(argv)
     
     # Handle --list
     if args.list:
@@ -469,23 +641,30 @@ Examples:
     os.chdir(project_root)
     
     # Determine targets to run
+    # Format: (alias, path_or_module, is_module)
     targets = []
     
     if args.all:
-        targets = list(ALIASES.items())
+        # Run notebooks only by default (scripts need args)
+        for alias, path in NOTEBOOKS.items():
+            targets.append((alias, path, False))
     elif args.notebooks:
-        targets = list(NOTEBOOKS.items())
+        for alias, path in NOTEBOOKS.items():
+            targets.append((alias, path, False))
     elif args.scripts:
-        targets = list(SCRIPTS.items())
+        for alias, module in SCRIPTS.items():
+            targets.append((alias, module, True))
     elif args.targets:
         for t in args.targets:
-            if t in ALIASES:
-                targets.append((t, ALIASES[t]))
+            if t in NOTEBOOKS:
+                targets.append((t, NOTEBOOKS[t], False))
+            elif t in SCRIPTS:
+                targets.append((t, SCRIPTS[t], True))
             else:
                 # Check if it's a direct path
                 path = Path(t)
                 if path.exists():
-                    targets.append((path.stem, str(path)))
+                    targets.append((path.stem, str(path), False))
                 else:
                     print_error(f"Unknown target: {t}")
                     print_info("Use --list to see available targets")
@@ -501,6 +680,8 @@ Examples:
     print_header("AffectExMachina Reproduction")
     print_info(f"Project root: {project_root}")
     print_info(f"Targets to run: {len(targets)}")
+    if extra_args:
+        print_info(f"Extra arguments: {' '.join(extra_args)}")
     
     # Set up output directory
     output_dir = None
@@ -515,7 +696,8 @@ Examples:
         project_root,
         output_dir,
         args.timeout,
-        args.verbose
+        args.verbose,
+        extra_args if extra_args else None
     )
     
     # Print summary

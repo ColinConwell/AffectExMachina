@@ -2,8 +2,12 @@ import pandas as pd
 import numpy as np
 from tqdm.auto import tqdm as tqdm
 
-from .feature_extraction import *
-from .model_options import *
+try: # to import relatively
+    from .feature_extraction import *
+    from .model_options import *
+except ImportError:
+    from feature_extraction import *
+    from model_options import *
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

@@ -11,7 +11,10 @@ from tqdm.auto import tqdm
 from scipy.stats import pearsonr
 from glob import glob
 
-from ..model_opts import *
+try:
+    from ..model_opts import *
+except ImportError:
+    from model_opts import *
 model_options = get_model_options()
 
 import numba

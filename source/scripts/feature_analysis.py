@@ -9,8 +9,11 @@ from copy import copy
 
 from torch.utils.data import DataLoader
 
-# import model options
-from ..model_opts import *
+# import model options (works both as module and direct import)
+try:
+    from ..model_opts import *
+except ImportError:
+    from model_opts import *
 
 from sklearn.linear_model import RidgeCV
 from scipy.stats import pearsonr

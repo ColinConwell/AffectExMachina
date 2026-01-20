@@ -1,8 +1,6 @@
 import os, sys, shutil
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from importlib.util import find_spec
 from tqdm.auto import tqdm as tqdm
 from collections import defaultdict
 from typing import OrderedDict, Mapping
@@ -17,11 +15,13 @@ def warn_once(msg: str):
 from PIL import Image
 import torch.nn as nn
 import torch, torchvision
-import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
-from torch.autograd import Variable
 
-from .model_options import *
+try: # import relatively
+    from .model_options import *
+except ImportError:
+    # import directly
+    from model_options import *
 
 def get_prepped_model(model_string):
     model_options = get_model_options()

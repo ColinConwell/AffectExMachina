@@ -1,12 +1,26 @@
 import numpy as np
 
-from sklearn.linear_model._ridge import LinearModel, MultiOutputMixin, RegressorMixin
-from sklearn.linear_model._ridge import _RidgeGCV, _BaseRidgeCV, RidgeCV
-from sklearn.linear_model._ridge import is_classifier, check_scoring, _check_gcv_mode
-from sklearn.linear_model._ridge import _IdentityRegressor, safe_sparse_dot
+from scipy import sparse
+from scipy.stats import pearsonr
 
-from sklearn.metrics import r2_score, explained_variance_score
-from scipy.stats import pearsonr, spearmanr
+from sklearn.linear_model._ridge import (
+    Ridge,
+    RidgeClassifier,
+    GridSearchCV,
+    LinearModel,
+    MultiOutputMixin,
+    RegressorMixin,
+    _RidgeGCV, 
+    _BaseRidgeCV,
+    is_classifier, 
+    _check_gcv_mode, 
+    _check_sample_weight, 
+    _rescale_data,
+    _IdentityRegressor,
+    safe_sparse_dot,
+)
+
+from sklearn.metrics import explained_variance_score
 
 pearsonr_vec = np.vectorize(pearsonr, signature='(n),(n)->(),()')
 

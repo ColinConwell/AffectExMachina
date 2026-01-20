@@ -1,15 +1,13 @@
 import warnings; warnings.filterwarnings("ignore")
 
 import numpy as np
-import pandas as pd
-from tqdm.auto import tqdm as tqdm
+from tqdm.auto import tqdm
 
 from sklearn.metrics import r2_score, explained_variance_score
 from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.model_selection import KFold, RepeatedKFold
-from sklearn.preprocessing import scale 
 from scipy.stats import pearsonr, spearmanr
 
 ### Response Transforms -----------------------------------------------------

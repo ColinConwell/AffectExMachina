@@ -31,6 +31,14 @@ viz = [
   "plotnine",
   "siuba",
 ]
+notebooks = [
+  "jupyter",
+  "jupyterlab",
+  "nbconvert",
+  "nbval",
+  "papermill",
+  "ipykernel",
+]
 external = [
   "visualpriors @ git+https://github.com/alexsax/visualpriors.git",
   "clip @ git+https://github.com/openai/CLIP.git",
