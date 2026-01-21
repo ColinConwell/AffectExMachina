@@ -123,3 +123,17 @@ coverage.xml
 # Sphinx / mkdocs
 /site
 docs/_build/
+
+# R / RStudio
+.Rhistory
+.Rdata
+.RData
+.Rproj.user/
+*_cache/
+*.Rproj
+
+# quarto
+.quarto/
+_site/
+_freeze/
+*_files/

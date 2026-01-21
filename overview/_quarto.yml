@@ -1,0 +1,42 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Perceptual Primacy of Feeling"
+  navbar:
+    left:
+      - href: overview.qmd
+        text: Overview
+
+format:
+  html:
+    theme: 
+      light: cosmo
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: false
+    code-fold: true
+    code-tools: true
+    code-summary: "Show code"
+    highlight-style: github
+    fig-width: 10
+    fig-height: 6
+    fig-align: center
+    self-contained: false
+    css: styles.css
+
+bibliography: references.bib
+link-citations: true
+
+execute:
+  freeze: auto
+  cache: true
+
+knitr:
+  opts_chunk:
+    echo: true
+    message: false
+    warning: false
+    fig.align: center

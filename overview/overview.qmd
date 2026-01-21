@@ -1,0 +1,535 @@
+---
+title: "The Perceptual Primacy of Feeling"
+subtitle: "Affectless visual machines explain a majority of variance in human visually-evoked affect"
+author:
+  - name: Colin Conwell
+    affiliations:
+      - name: Harvard University
+        department: Department of Psychology
+    corresponding: true
+    # email: colinconwell@gmail.com
+  - name: Daniel Graham
+    affiliations:
+      - name: Hobart and William Smith Colleges
+        department: Department of Psychological Sciences
+  - name: Chelsea Boccagno
+    affiliations:
+      - name: Massachusetts General Hospital
+        department: Department of Psychiatry
+      - name: Harvard T.H. Chan School of Public Health
+        department: Department of Epidemiology
+  - name: Edward A. Vessel
+    affiliations:
+      - name: City College of New York
+        department: Department of Psychology
+date: 2025-01-20
+citation:
+  type: article-journal
+  container-title: "Proceedings of the National Academy of Sciences"
+  volume: 122
+  issue: 4
+  page: e2306025121
+  doi: "10.1073/pnas.2306025121"
+  url: "https://www.pnas.org/doi/abs/10.1073/pnas.2306025121"
+bibliography: references.bib
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-tools: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center"
+)
+```
+
+::: {.callout-note appearance="simple"}
+## Read the full article on [PNAS](https://www.pnas.org/doi/abs/10.1073/pnas.2306025121)
+
+> Conwell, C., Graham, D., Boccagno, C., & Vessel, E. A. (2025). The perceptual primacy of feeling: Affectless visual machines explain a majority of variance in human visually evoked affect. *Proceedings of the National Academy of Sciences*, 122(4), e2306025121. [https://doi.org/10.1073/pnas.2306025121](https://doi.org/10.1073/pnas.2306025121)
+
+:::
+
+## Abstract
+
+Looking at the world often involves not just seeing things, but feeling things. Modern feedforward machine vision systems---trained to perceive without physiology, deliberative thought, or any feedback resembling human affective experience---offer tools to demystify the relationship between seeing and feeling. In this work, we deploy 180 state-of-the-art deep neural network models trained only on canonical computer vision tasks to predict human ratings of arousal, valence, and beauty for images across multiple categories. Using features from these models *without additional learning*, we linearly decode human affective responses from network activity---much like neuroscientists decode information from neural recordings. Our results demonstrate that predictions from purely perceptual models explain **a majority of the explainable variance** in average ratings of arousal, valence, and beauty alike.
+
+## Introduction
+
+For sentient biological agents, *looking* at the world almost always means *feeling* the world. Though often studied in isolation, perception and affect are intimately linked in everyday experience [@merleau1962phenomenology], at both conscious and subconscious levels [@barrett2009see; @barrett2009affect]. A beautiful, moving, inviting, or aversive stimulus evokes processes beyond what we typically refer to as vision---but where exactly "seeing" stops and "feeling" begins is difficult to answer with brain or behavioral experiments alone.
+
+Visual machines offer a way to bypass this barrier. By using a large survey of visual systems---which only see and cannot feel---to predict human affective responses, we can better isolate the contributions of *visual perception* to *visually-evoked affect*.
+
+### Key Definitions
+
+- **Visual perception**: Processes that map visual sensation (light on the retina) into mental representations whose referents are external objects
+- **Affect**: Both "core affect" (arousal and valence) and affect more broadly construed ("anything emotional"; @barrett2006emotions)
+- **Visually-evoked affect**: Affect arising in response to an external visual stimulus
+
+Many theoretical frameworks describe "seeing with feeling" as the product of three interactive processes: (1) perception of the immediate sensory environment, (2) physiological or bodily state change, and (3) cognitive interpretation of one's physiology with respect to one's percepts [@averill1980constructivist; @russell1999core; @barrett2006emotions]. The relative contributions of each remain hotly debated [@james1890principles; @barrett2017theory].
+
+Visual machines give us empirical control to disentangle perceptual computations from the influence of physiology and cognition. These machines are highly specialized, feedforward representation learners designed to transform digital inputs into numerical vectors. Critically, they are **not affective**---with no states corresponding to a physiological body, nor capacity for deliberative thought.
+
+The power of these machines lies in their ability to "see" without "feeling" anything at all. Once trained, their outputs serve as coordinates for triangulating stimulus locations in a representational space defined entirely by input, architecture, task, and learning rule. By using these coordinates to predict what humans feel in response to visual stimuli, we can approximate how much of visually-evoked affect may be supported by perception alone.
+
+## Methods Overview
+
+Our approach (@fig-pipeline) is to fit **linear** decoding models to features extracted from every layer of 180 distinct deep neural network models. We assess how much affect-predictive information is inherent to these features, despite them never having been shaped to predict affective experiences *per se*.
+
+![**Approach Overview.** Respondents rate images on a scale of 0-7 for arousal, valence, or beauty. To decode group-average affect, we extract features at each layer of a deep neural network, reduce dimensionality with sparse random projection, then use these features as predictors in a leave-one-out cross-validated ridge regression. We correlate predictions with actual ratings to obtain an accuracy value per layer.](../publication/figures/figure1.pdf){#fig-pipeline width="100%"}
+
+### Datasets
+
+We use two primary datasets:
+
+1. **OASIS** [@kurdi2017introducing]: 900 images across 4 categories (people, animals, objects, scenes) with ratings of arousal and valence from 822 respondents. Beauty ratings (751 respondents) from @brielmann2019intense.
+
+2. **Vessel Dataset** [@vessel2018stronger]: 562 images across 5 categories (art, faces, landscapes, internal & external architecture) with beauty ratings.
+
+### Scoring Metrics
+
+To quantify prediction accuracy, we use:
+
+**Pearson correlation** ($r_{(y,\hat{y})}$): Correlation between predicted and actual ratings.
+
+**Explainable variance explained** ($r^2_{\text{EVE}}$): 
+
+$$r^2_{\text{EVE}} = \frac{r^2_{(y,\hat{y})}}{r^2_{split}}$$
+
+This normalizes accuracy by the Spearman-Brown split-half reliability, converting our measure into a proportion of variance not attributable to human disagreement.
+
+## Demonstration: Neural Regression with AlexNet
+
+Below is a streamlined demonstration of the neural regression pipeline using AlexNet loaded from `torchvision`. This shows how to extract features, reduce dimensionality, and predict beauty ratings.
+
+```{python}
+#| eval: false
+#| code-fold: false
+
+import os
+import numpy as np
+import pandas as pd
+from PIL import Image
+from glob import glob
+from tqdm import tqdm
+
+import torch
+import torch.nn as nn
+from torchvision import models, transforms
+from sklearn.linear_model import RidgeCV
+from sklearn.random_projection import SparseRandomProjection
+from sklearn.random_projection import johnson_lindenstrauss_min_dim
+from scipy.stats import pearsonr
+
+# Set paths relative to the source directory
+SOURCE_DIR = "../source"
+IMAGE_DIR = os.path.join(SOURCE_DIR, "images/oasis")
+RESPONSE_FILE = os.path.join(SOURCE_DIR, "response/oasis_means_per_image.csv")
+
+# 1. Load pretrained AlexNet
+print("Loading AlexNet...")
+model = models.alexnet(weights=models.AlexNet_Weights.IMAGENET1K_V1)
+model.eval()
+if torch.cuda.is_available():
+    model = model.cuda()
+
+# 2. Define image transforms (ImageNet normalization)
+preprocess = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    ),
+])
+
+# 3. Feature extraction hook for the last convolutional layer
+features = {}
+
+def get_features(name):
+    def hook(model, input, output):
+        features[name] = output.detach().cpu()
+    return hook
+
+# Register hook on the last features layer (before classifier)
+model.features[-1].register_forward_hook(get_features('conv5'))
+
+# 4. Load response data
+print("Loading response data...")
+response_df = pd.read_csv(RESPONSE_FILE)
+response_df['image_name'] = response_df['theme'] + '.jpg'
+
+# 5. Extract features for each image
+print("Extracting features...")
+image_files = sorted(glob(os.path.join(IMAGE_DIR, "*.jpg")))
+all_features = []
+valid_images = []
+
+for img_path in tqdm(image_files[:100], desc="Processing images"):  # Demo with 100 images
+    img_name = os.path.basename(img_path)
+    if img_name not in response_df['image_name'].values:
+        continue
+    
+    try:
+        img = Image.open(img_path).convert('RGB')
+        img_tensor = preprocess(img).unsqueeze(0)
+        if torch.cuda.is_available():
+            img_tensor = img_tensor.cuda()
+        
+        with torch.no_grad():
+            _ = model(img_tensor)
+        
+        feat = features['conv5'].flatten().numpy()
+        all_features.append(feat)
+        valid_images.append(img_name)
+    except Exception as e:
+        print(f"Error processing {img_name}: {e}")
+
+# Stack features into array
+X = np.vstack(all_features)
+print(f"Feature matrix shape: {X.shape}")
+
+# 6. Apply Sparse Random Projection
+print("Applying sparse random projection...")
+n_projections = johnson_lindenstrauss_min_dim(n_samples=X.shape[0], eps=0.1)
+srp = SparseRandomProjection(n_components=n_projections, random_state=42)
+X_reduced = srp.fit_transform(X)
+print(f"Reduced feature matrix shape: {X_reduced.shape}")
+
+# 7. Get corresponding beauty ratings
+y = response_df.set_index('image_name').loc[valid_images]['beauty'].values
+
+# 8. Ridge regression with leave-one-out cross-validation
+print("Fitting ridge regression...")
+ridge = RidgeCV(alphas=[1e2, 1e3, 1e4], store_cv_values=True)
+ridge.fit(X_reduced, y)
+
+# Get LOO predictions
+y_pred = ridge.cv_values_[:, list(ridge.alphas).index(ridge.alpha_)]
+
+# 9. Compute Pearson correlation
+r, p = pearsonr(y, y_pred)
+print(f"\n{'='*50}")
+print(f"Results: AlexNet (conv5) -> Beauty Ratings")
+print(f"{'='*50}")
+print(f"Pearson r: {r:.3f}")
+print(f"p-value: {p:.2e}")
+print(f"Optimal alpha: {ridge.alpha_}")
+print(f"{'='*50}")
+```
+
+This demonstration shows the core pipeline:
+
+1. **Feature extraction**: Pass images through AlexNet, capture activations at the last convolutional layer
+2. **Dimensionality reduction**: Apply sparse random projection (following @johnson1984extensions)
+3. **Ridge regression**: Fit a regularized linear model with leave-one-out cross-validation
+4. **Evaluation**: Compute Pearson correlation between predicted and actual beauty ratings
+
+## Results
+
+We now present key findings from the full analysis of 180 deep neural network models.
+
+```{r load-packages}
+#| message: false
+#| warning: false
+
+# Load required packages
+if (!require(pacman)) install.packages("pacman")
+pacman::p_load(
+  tidyverse, ggplot2, scales, cowplot, 
+  ggtext, viridis, arrow
+)
+
+theme_set(theme_bw())
+
+# Custom theme elements
+custom_themes <- list()
+custom_themes[['bottom_legend']] <- theme(
+  legend.position = "bottom", 
+  legend.justification = "center", 
+  legend.box.margin = margin(-12, 0, 0, 0)
+)
+```
+
+```{r load-data}
+#| message: false
+
+# Helper functions
+ci_boot <- function(x) {
+  boot_result <- Hmisc::smean.cl.boot(x, conf.int = 0.95)
+  return(boot_result[3] - boot_result[1])
+}
+
+# Load regression results
+read_csv_add_dataset <- function(x) {
+  read_csv(x, col_types = cols()) |> 
+    mutate(dataset = str_split(x, '/', simplify = TRUE) |> nth(-2))
+}
+
+# Set paths relative to source directory
+source_dir <- "../source"
+
+# Check if data exists
+reg_files <- dir(
+  file.path(source_dir, 'incoming/reg_redux'), 
+  pattern = '.csv', 
+  full.names = TRUE, 
+  recursive = TRUE
+)
+
+if (length(reg_files) > 0) {
+  reg_results <- reg_files |>
+    map(read_csv_add_dataset) |> 
+    bind_rows() |>
+    filter(model != 'alexnet', score_type == 'pearson_r') |>
+    group_by(model, train_type) |>
+    mutate(
+      model_depth = n_distinct(model_layer_index),
+      model_layer_depth = model_layer_index / model_depth
+    ) |> 
+    ungroup()
+  
+  reg_results_max <- reg_results |>
+    group_by(model, train_type, dataset, measurement, image_type) |> 
+    filter(score == max(score)) |> 
+    ungroup()
+  
+  data_loaded <- TRUE
+} else {
+  data_loaded <- FALSE
+  message("Pre-computed regression results not found. Showing example visualizations only.")
+}
+
+# Load reliability data
+splithalf_file <- file.path(source_dir, 'response/splithalf_data.csv')
+if (file.exists(splithalf_file)) {
+  splithalf_summary <- read_csv(splithalf_file, show_col_types = FALSE) |>
+    rename(r = splithalf_r, lower = splithalf_lower, upper = splithalf_upper)
+}
+```
+
+### Overall Predictive Accuracy
+
+The average object recognition model predicts group-level affect ratings far above the "ceiling of shared taste" and over halfway to the overall noise ceiling.
+
+```{r}
+#| label: fig-accuracy
+#| fig-cap: "Accuracy of model-predicted affect ratings across model types. Points represent individual models or human respondents. Gray horizontal bars show the Spearman-Brown split-half reliability noise ceilings."
+#| fig-width: 10
+#| fig-height: 6
+#| eval: false
+
+if (data_loaded) {
+  # Define labels and colors
+  train_type_labels <- c(
+    'Category-Supervised Models' = 'imagenet', 
+    'Self-Supervised Models' = 'selfsupervised',
+    'Untrained Models' = 'random'
+  )
+  
+  train_type_levels <- c(
+    'Category-Supervised Models', 
+    'Self-Supervised Models', 
+    'Untrained Models'
+  )
+  
+  train_type_colors <- c('#57157EFF', '#C43C75FF', '#FE9F6DFF') |>
+    set_names(train_type_levels)
+  
+  measurement_levels <- c('Arousal', 'Valence', 'Beauty')
+  
+  # Plot overall accuracy
+  reg_results_max |> 
+    filter(
+      dataset == 'oasis', 
+      image_type == 'Combo', 
+      train_type %in% train_type_labels
+    ) |>
+    mutate(
+      train_type = fct_recode(train_type, !!!train_type_labels),
+      train_type = factor(train_type, levels = train_type_levels),
+      measurement = factor(str_to_title(measurement), levels = measurement_levels)
+    ) |>
+    ggplot(aes(x = measurement, y = score, color = train_type)) + 
+    geom_point(alpha = 0.4, position = position_jitterdodge(dodge.width = 0.9)) +
+    geom_boxplot(
+      position = position_dodge(width = 0.9), 
+      outlier.shape = NA, 
+      width = 0.5,
+      alpha = 0.3
+    ) +
+    geom_hline(yintercept = 0, lty = 2) +
+    labs(
+      y = expression(italic(r)[Pearson] ~ "(Predicted, Actual Ratings)"),
+      x = NULL, 
+      color = NULL
+    ) +
+    scale_color_manual(values = train_type_colors) + 
+    custom_themes$bottom_legend +
+    theme(
+      text = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank()
+    )
+}
+```
+
+Key findings for ImageNet-trained models:
+
+| Metric | Arousal | Valence | Beauty |
+|--------|---------|---------|--------|
+| Mean $r_{(y,\hat{y})}$ | 0.688 | 0.663 | 0.746 |
+| Mean $r^2_{\text{EVE}}$ | 0.511 | 0.450 | 0.570 |
+
+: Mean predictive accuracies for ImageNet-trained models on OASIS dataset {#tbl-accuracy}
+
+### The Deepest Layers are Most Predictive
+
+Affect-predictive accuracy increases monotonically with layer depth, suggesting that abstract, high-level representations are key to predicting affect.
+
+```{r}
+#| label: fig-depth
+#| fig-cap: "Predictive accuracy as a function of relative layer depth. Each point represents a model at a given depth bin. The deepest layers are consistently the most predictive."
+#| fig-width: 10
+#| fig-height: 5
+#| eval: false
+
+if (data_loaded) {
+  measurement_levels <- c('Arousal', 'Valence', 'Beauty')
+  
+  reg_results |> 
+    filter(dataset == 'oasis', image_type == 'Combo') |>
+    filter(train_type %in% c('imagenet', 'selfsupervised')) |>
+    mutate(
+      depth_binned = cut(
+        model_layer_depth, 
+        breaks = seq(0, 1.0, 0.1), 
+        labels = seq(0.1, 1.0, 0.1)
+      ),
+      measurement = factor(str_to_title(measurement), levels = measurement_levels)
+    ) |>
+    group_by(model, train_type, measurement, depth_binned) |>
+    summarise(score = mean(score, na.rm = TRUE), .groups = 'drop') |>
+    ggplot(aes(x = depth_binned, y = score)) +
+    facet_wrap(~measurement) +
+    geom_jitter(alpha = 0.15, width = 0.25, color = '#57157EFF') +
+    geom_boxplot(outlier.shape = NA, width = 0.5, alpha = 0.7) +
+    labs(
+      x = 'Relative Layer Depth (Binned)',
+      y = expression(italic(r)[Pearson] ~ "(Predicted, Actual Ratings)")
+    ) +
+    theme(
+      text = element_text(size = 14), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank()
+    )
+}
+```
+
+The average depths of the most predictive layers are:
+
+- **Arousal**: 0.934 (93.4% depth)
+- **Valence**: 0.955 (95.5% depth)
+- **Beauty**: 0.956 (95.6% depth)
+
+### Trained vs. Untrained Models
+
+Training matters substantially. Randomly-initialized networks explain only a small fraction of the variance that fully trained networks explain.
+
+```{r}
+#| label: fig-trained-random
+#| fig-cap: "Comparison of trained vs. untrained (random) models. Training produces a categorical improvement in affect prediction."
+#| fig-width: 8
+#| fig-height: 5
+#| eval: false
+
+if (data_loaded) {
+  reg_results_max |> 
+    filter(train_type %in% c('imagenet', 'random')) |>
+    filter(dataset == 'oasis', image_type == 'Combo') |>
+    mutate(
+      train_type = case_when(
+        train_type == 'imagenet' ~ 'Trained',
+        train_type == 'random' ~ 'Untrained'
+      ),
+      measurement = factor(str_to_title(measurement), c('Arousal', 'Valence', 'Beauty'))
+    ) |>
+    ggplot(aes(x = train_type, y = score, fill = train_type)) +
+    facet_wrap(~measurement) +
+    geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.3) +
+    scale_fill_manual(values = c('Trained' = '#57157EFF', 'Untrained' = '#FE9F6DFF')) +
+    labs(
+      x = NULL,
+      y = expression(italic(r)[Pearson] ~ "(Predicted, Actual Ratings)")
+    ) +
+    guides(fill = 'none') +
+    theme(
+      text = element_text(size = 14),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+}
+```
+
+All pairwise differences between trained and untrained models are statistically significant ($p < 0.001$) with large effect sizes (mean Hedge's $g = 7.43$).
+
+### Best-Performing Models
+
+The most predictive purely perceptual model (ConvNext-Large trained on ImageNet-21K) explains approximately **73% of the explainable variance** in human affect ratings:
+
+| Model | Training | $r^2_{\text{EVE}}$ |
+|-------|----------|-------------------|
+| ConvNext-Large | ImageNet-21K | 0.729 [0.702, 0.750] |
+| Swin Transformer | ImageNet-21K | 0.673 [0.649, 0.695] |
+| Swin Transformer | ImageNet-1K | 0.648 [0.621, 0.672] |
+
+: Top-performing purely perceptual models {#tbl-best-models}
+
+### Self-Supervised vs. Category-Supervised Models
+
+Self-supervised models (trained without explicit category labels) predict affect as accurately as category-supervised models, suggesting that *explicit* category learning is not necessary for accurate affect prediction.
+
+Mean accuracy for category-supervised models: $r = 0.685$ [0.675, 0.696]
+Mean accuracy for self-supervised models: $r = 0.688$ [0.641, 0.702]
+
+This difference is non-significant ($W = 568$, $p = 0.687$).
+
+### Language-Aligned Models
+
+Vision-language models like CLIP partially close the gap on unexplained variance. The best CLIP model (ViT-Large-Patch14) achieves $r^2_{\text{EVE}} = 0.870$ [0.857, 0.881], compared to 0.729 for the best purely perceptual model.
+
+## Discussion
+
+Our results demonstrate that purely perceptual computations---implemented in "affectless" visual machines---can predict a substantial majority of the explainable variance in human affective responses to images. This finding has important implications for understanding the relationship between perception and affect.
+
+### Key Takeaways
+
+1. **Perceptual sufficiency**: Visual machines that cannot "feel" nonetheless contain statistical proxies of affect sufficient for highly accurate prediction. The average model explains ~54% of explainable variance; the best models exceed 70%.
+
+2. **Representation learning matters**: The success of these models is not merely a function of their ability to encode image statistics, but of the representations they learn from *experience over many images*---their hierarchically structured knowledge of the visual world.
+
+3. **Deep features are most predictive**: The deepest network layers (not the shallow, "pixel-like" features) best predict affect, pointing to rich, pre-conceptual abstraction as a key driver.
+
+4. **Beauty is highly predictable**: Counter to intuitions that beauty requires "cognitive" processing, beauty ratings are the *most* predictable affect category, with higher accuracies than arousal or valence.
+
+5. **Training trumps architecture**: Randomly-initialized networks perform poorly, demonstrating that learned representations---not architectural priors alone---drive predictive power.
+
+### Theoretical Implications
+
+These findings suggest that perceptual learning over natural image statistics may occupy a more central place in the ontology of visually-evoked affect than previous theories have suggested. Affect may be fundamentally yoked to representation learning---not because affect is inherent to any single feedforward pass of perception, but because affect provides a compass for learning that has already occurred and for learning yet to come.
+
+The meteoric rise of perceptual machines offers meaningful steps toward a computationally principled, mechanistic, stimulus-computable account of what it means to "see" with "feeling."
+
+## References
+
+::: {#refs}
+:::
